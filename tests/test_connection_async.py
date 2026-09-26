@@ -35,8 +35,17 @@ async def test_connect(aconn_cls, dsn):
 
 @pytest.mark.crdb("skip", reason="can connect to any db name")
 async def test_connect_bad(aconn_cls, dsn):
-    with pytest.raises(psycopg.OperationalError):
+    with pytest.raises(psycopg.OperationalError) as excinfo:
         await aconn_cls.connect(dsn, dbname="nosuchdb")
+    assert isinstance(excinfo.value.pgconn, e.FinishedPGconn)
+
+
+async def test_connect_error_pgconn_finished(aconn_cls):
+    # The PGconn of a failed connection attempt must be finished before
+    # the exception is raised, otherwise the libpq structure is leaked.
+    with pytest.raises(psycopg.OperationalError) as excinfo:
+        await aconn_cls.connect("host=/nonexistent")
+    assert isinstance(excinfo.value.pgconn, e.FinishedPGconn)
 
 
 @pytest.mark.slow

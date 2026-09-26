@@ -43,7 +43,7 @@ def connect(conninfo: str) -> PQGenConn[abc.PGconn]:
             encoding = conninfo_encoding(conninfo)
             raise e.OperationalError(
                 f"connection is bad: {conn.get_error_message(encoding)}",
-                pgconn=conn
+                pgconn=e.finish_pgconn(conn),
             )
 
         with nogil:
