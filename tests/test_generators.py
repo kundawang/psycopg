@@ -43,6 +43,28 @@ def test_connect_operationalerror_pgconn(generators, dsn, monkeypatch):
         pgconn.exec_(b"select 1")
 
 
+@pytest.mark.skipif(
+    pq.__impl__ != "python", reason="cannot monkeypatch the C implementation"
+)
+def test_connect_bad_pgconn_finished(generators, monkeypatch):
+    """Check that if connect_start() returns a bad connection, the PGconn
+    is finished before the OperationalError is raised."""
+    # A conninfo that the libpq cannot parse results in a BAD PGconn.
+    bad_pgconn = pq.PGconn.connect_start(b"nosuchparam=1")
+    assert bad_pgconn.status == pq.ConnStatus.BAD
+
+    monkeypatch.setattr(pq.PGconn, "connect_start", lambda conninfo: bad_pgconn)
+    gen = generators.connect("host=localhost")
+    with pytest.raises(psycopg.OperationalError, match="connection is bad") as excinfo:
+        waiting.wait_conn(gen)
+
+    pgconn = excinfo.value.pgconn
+    assert isinstance(pgconn, psycopg.errors.FinishedPGconn)
+    assert pgconn.status == pq.ConnStatus.BAD.value
+    with pytest.raises(psycopg.OperationalError, match="connection is closed"):
+        bad_pgconn.socket
+
+
 @pytest.mark.libpq(">= 17")
 def test_cancel(pgconn, conn, generators):
     pgconn.send_query_params(b"SELECT pg_sleep($1)", [b"180"])

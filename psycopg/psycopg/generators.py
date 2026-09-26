@@ -75,7 +75,8 @@ def _connect(conninfo: str) -> PQGenConn[PGconn]:
         if conn.status == BAD:
             encoding = conninfo_encoding(conninfo)
             raise e.OperationalError(
-                f"connection is bad: {conn.get_error_message(encoding)}", pgconn=conn
+                f"connection is bad: {conn.get_error_message(encoding)}",
+                pgconn=e.finish_pgconn(conn),
             )
 
         status = conn.connect_poll()

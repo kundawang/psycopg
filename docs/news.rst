@@ -26,6 +26,8 @@ Psycopg 3.3.6
 - Better guards dumping large Python `!int` to binary numeric (:ticket:`#1414`).
 - Improve performance of async queries by reducing the overhead of the
   `!wait_async()` function (:ticket:`#1331`).
+- Finish the `~psycopg.pq.PGconn` before raising the exception when
+  a connection attempt fails immediately (:ticket:`#565`).
 
 
 Psycopg 3.3.5
